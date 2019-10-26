@@ -11,8 +11,9 @@ class CompressorThread(threading.Thread):
     OUTPUT_FOLDER_SIZE_COUNTER = 0
     TOTAL_COMPRESSION_DURATION = 0
 
-    def __init__(self, items, output_folder, compression_type):
+    def __init__(self, items, output_folder, compression_type, extension):
         threading.Thread.__init__(self)
+        self.extension = extension
         self.items = items
         self.output_folder = output_folder
         self.compression_type = compression_type
@@ -74,5 +75,5 @@ class CompressorThread(threading.Thread):
     def run(self):
         for item in self.items:
             basename = os.path.basename(item)
-            output_file = self.output_folder + basename
+            output_file = self.output_folder + basename.split(self.extension)[0]
             self.compress_and_store_file(item, output_file, basename)

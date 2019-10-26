@@ -4,15 +4,20 @@ import time
 
 from compressor_thread import CompressorThread
 
-INPUT_FOLDER = '/home/corneliu/Downloads/output-large'
+INPUT_FOLDER = '/media/corneliu/UbuntuFiles/projects/yfcc100m-awesome-keyword-search/public/data/'
 EXTENSION = '.json'
+EXCLUDE_LIST = ['inverted_list.json', 'label_cloud.json', 'tag_list.json']
 OUTPUT_COMPRESSED = INPUT_FOLDER + '/compressed/'
 NR_THREADS = 16
 
 
 def get_partitions_of_files_for_input_folder(input_folder, nr_partitions, file_extension):
-    files_to_be_compressed = [os.path.abspath(os.path.join(input_folder, item))
-                              for item in os.listdir(input_folder) if item.endswith(file_extension)]
+    files_to_be_compressed = []
+
+    for item in os.listdir(input_folder):
+        if item.endswith(file_extension) and item not in EXCLUDE_LIST:
+            files_to_be_compressed.append(os.path.join(input_folder, item))
+
     return np.array_split(files_to_be_compressed, nr_partitions)
 
 
@@ -36,7 +41,7 @@ def compress_folder_items_using_method(method, input_json_folder, output_folder,
     threads = []
 
     for partition in partitions:
-        new_thread = CompressorThread(partition, OUTPUT_COMPRESSED, method)
+        new_thread = CompressorThread(partition, OUTPUT_COMPRESSED, method, file_extension)
         threads.append(new_thread)
         new_thread.start()
 
@@ -48,11 +53,15 @@ def compress_folder_items_using_method(method, input_json_folder, output_folder,
 
     print("Finished the compression using the %s method" % method)
 
-    percentage_decrease_all = 100 - ((CompressorThread.OUTPUT_FOLDER_SIZE_COUNTER /
-                                      CompressorThread.INPUT_FOLDER_SIZE_COUNTER) * 100)
+    if CompressorThread.INPUT_FOLDER_SIZE_COUNTER == 0:
+        percentage_decrease_all = 0
+    else:
+        percentage_decrease_all = 100 - ((CompressorThread.OUTPUT_FOLDER_SIZE_COUNTER /
+                                          CompressorThread.INPUT_FOLDER_SIZE_COUNTER) * 100)
 
-    compression_time_per_item = CompressorThread.TOTAL_COMPRESSION_DURATION / nr_items
-    compressed_items_per_second = nr_items / CompressorThread.TOTAL_COMPRESSION_DURATION
+    compression_time_per_item = CompressorThread.TOTAL_COMPRESSION_DURATION / nr_items if nr_items != 0 else 0
+    compressed_items_per_second = nr_items / CompressorThread.TOTAL_COMPRESSION_DURATION \
+        if CompressorThread.TOTAL_COMPRESSION_DURATION != 0 else 0
 
     print("Stats for method: %s" % method)
     print("Initial folder size: %d" % CompressorThread.INPUT_FOLDER_SIZE_COUNTER)
